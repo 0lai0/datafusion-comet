@@ -21,7 +21,7 @@ package org.apache.comet.serde
 
 import java.util.Locale
 
-import org.apache.spark.sql.catalyst.expressions.{Attribute, Cast, Concat, Expression, InitCap, Left, Length, Like, Literal, Lower, RegExpReplace, RLike, StringLPad, StringRepeat, StringRPad, Substring, Upper}
+import org.apache.spark.sql.catalyst.expressions.{Attribute, Cast, Concat, ConcatWs, Expression, InitCap, Left, Length, Like, Literal, Lower, RegExpReplace, RLike, StringLPad, StringRepeat, StringRPad, Substring, Upper}
 import org.apache.spark.sql.types.{BinaryType, DataTypes, LongType, StringType}
 
 import org.apache.comet.CometConf
@@ -151,6 +151,17 @@ object CometConcat extends CometScalarFunction[Concat]("concat") {
       Compatible()
     } else {
       Incompatible(Some(unsupportedReason))
+    }
+  }
+}
+
+object CometConcatWs extends CometScalarFunction[ConcatWs]("concat_ws") {
+  override def getSupportLevel(expr: ConcatWs): SupportLevel = {
+    expr.children.headOption match {
+      case Some(Literal(null, _)) =>
+        Unsupported(Some("concat_ws with NULL separator is not supported in Comet"))
+      case _ =>
+        Compatible()
     }
   }
 }

@@ -29,7 +29,7 @@ SELECT concat_ws(',', a, b, c) FROM test_concat_ws
 query
 SELECT concat_ws('', a, b, c) FROM test_concat_ws
 
-query
+query expect_fallback(concat_ws with NULL separator)
 SELECT concat_ws(NULL, a, b, c) FROM test_concat_ws
 
 -- migrated from CometStringExpressionSuite "string concat_ws"
@@ -43,5 +43,5 @@ query
 SELECT concat_ws(' ', first_name, middle_initial, last_name) FROM names
 
 -- literal + literal + literal
-query ignore(https://github.com/apache/datafusion-comet/issues/3339)
+query spark_answer_only
 SELECT concat_ws(',', 'hello', 'world'), concat_ws(',', '', ''), concat_ws(',', NULL, 'b', 'c'), concat_ws(NULL, 'a', 'b')
