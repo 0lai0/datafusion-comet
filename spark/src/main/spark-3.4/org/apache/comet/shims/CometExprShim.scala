@@ -44,7 +44,10 @@ trait CometExprShim extends CommonStringExprs {
         // Right child is the encoding expression.
         stringDecode(expr, s.charset, s.bin, inputs, binding)
 
-      case _ => handleMinutesOfTime(expr, inputs, binding)
+      case _ if expr.getClass.getSimpleName == "MinutesOfTime" =>
+        minutesOfTimeToProto(expr, inputs, binding)
+
+      case _ => None
     }
   }
 }
