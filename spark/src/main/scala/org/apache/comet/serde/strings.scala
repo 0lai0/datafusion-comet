@@ -413,32 +413,45 @@ trait CommonStringExprs {
       expr: Expression,
       inputs: Seq[Attribute],
       binding: Boolean): Option[Expr] = {
-    if (expr.children.nonEmpty) {
-      exprToProtoInternal(expr.children.head, inputs, binding) match {
-        case Some(childExpr) =>
+    val childOpt = expr.children.headOption.orElse {
+      withInfo(expr, "HoursOfTime has no child expression")
+      None
+    }
+
+    childOpt.flatMap { child =>
+      val timeZoneId = {
+        val exprClass = expr.getClass
+        try {
+          val timeZoneIdMethod = exprClass.getMethod("timeZoneId")
+          timeZoneIdMethod.invoke(expr).asInstanceOf[Option[String]]
+        } catch {
+          case _: NoSuchMethodException =>
+            try {
+              val timeZoneIdField = exprClass.getField("timeZoneId")
+              timeZoneIdField.get(expr).asInstanceOf[Option[String]]
+            } catch {
+              case _: NoSuchFieldException | _: SecurityException => None
+            }
+        }
+      }
+
+      exprToProtoInternal(child, inputs, binding)
+        .map { childExpr =>
           val builder = ExprOuterClass.Hour.newBuilder()
           builder.setChild(childExpr)
-          val timeZone =
-            try {
-              val timeZoneIdMethod = expr.getClass.getMethod("timeZoneId")
-              timeZoneIdMethod.invoke(expr).asInstanceOf[Option[String]].getOrElse("UTC")
-            } catch {
-              case _: NoSuchMethodException => "UTC"
-              case _: Exception => "UTC"
-            }
+
+          val timeZone = timeZoneId.getOrElse("UTC")
           builder.setTimezone(timeZone)
-          Some(
-            ExprOuterClass.Expr
-              .newBuilder()
-              .setHour(builder)
-              .build())
-        case None =>
-          withInfo(expr, expr.children.head)
+
+          ExprOuterClass.Expr
+            .newBuilder()
+            .setHour(builder)
+            .build()
+        }
+        .orElse {
+          withInfo(expr, child)
           None
-      }
-    } else {
-      withInfo(expr, "HoursOfTime expression has no child")
-      None
+        }
     }
   }
 }
